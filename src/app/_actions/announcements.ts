@@ -1,108 +1,269 @@
 'use server';
 
 import { currentUser } from '@clerk/nextjs/server';
-import { prisma } from '../../lib/prisma';
+import { getPrismaClient } from '../../lib/prisma';
 
-export async function createAnnouncement({
-  subjectInstanceId,
-  title,
-  content
-}: {
+export async function createAnnouncement(data: {
   subjectInstanceId: string;
   title: string;
   content: string;
 }) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
+
+    if (!user || !user.id) {
+      throw new Error('User not authenticated.');
     }
-    if (!subjectInstanceId || !title.trim() || !content.trim()) {
-      return { success: false, error: 'All fields are required' };
+
+    // Validate required fields
+    if (!data.subjectInstanceId || !data.title || !data.content) {
+      throw new Error('All fields are required.');
     }
-    // Create announcement and update enrolments in a transaction
+
+    // Check if subject instance exists and belongs to the user
+    const subjectInstance = await prisma.subjectInstance.findUnique({
+      where: {
+        id: data.subjectInstanceId,
+        userId: user.id
+      }
+    });
+
+    if (!subjectInstance) {
+      throw new Error('Subject instance not found or you do not have permission to add announcements.');
+    }
+
+    // Create the announcement and update enrollments in a transaction
     const announcement = await prisma.$transaction(async (tx) => {
+      // Create the announcement
       const newAnnouncement = await tx.announcement.create({
         data: {
-          subjectInstanceId,
+          subjectInstanceId: data.subjectInstanceId,
           userId: user.id,
-          title: title,
-          content: content
+          title: data.title,
+          content: data.content
         }
       });
+
+      // Update all enrollments for this subject instance
       await tx.enrolment.updateMany({
-        where: { subjectInstanceId },
-        data: { hasNewContent: true }
+        where: {
+          subjectInstanceId: data.subjectInstanceId
+        },
+        data: {
+          hasNewContent: true
+        }
       });
+
       return newAnnouncement;
     });
-    return { success: true, data: announcement };
+
+    return {
+      success: true,
+      data: announcement
+    };
   } catch (error) {
     console.error('Error creating announcement:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to create announcement' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create announcement'
+    };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
-export async function editAnnouncement({
-  announcementId,
-  title,
-  content
-}: {
+export async function getAnnouncements(subjectInstanceId: string) {
+  const prisma = getPrismaClient();
+  
+  try {
+    const user = await currentUser();
+
+    if (!user || !user.id) {
+      throw new Error('User not authenticated.');
+    }
+
+    // Check if subject instance exists and belongs to the user
+    const subjectInstance = await prisma.subjectInstance.findUnique({
+      where: {
+        id: subjectInstanceId,
+        userId: user.id
+      }
+    });
+
+    if (!subjectInstance) {
+      throw new Error('Subject instance not found or you do not have permission to view announcements.');
+    }
+
+    // Get all announcements for this subject instance
+    const announcements = await prisma.announcement.findMany({
+      where: {
+        subjectInstanceId: subjectInstanceId
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    return {
+      success: true,
+      data: announcements
+    };
+  } catch (error) {
+    console.error('Error fetching announcements:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch announcements'
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+export async function getStudentAnnouncements(subjectInstanceId: string) {
+  const prisma = getPrismaClient();
+  
+  try {
+    const user = await currentUser();
+
+    if (!user || !user.id) {
+      throw new Error('User not authenticated.');
+    }
+
+    // Get the student's enrollment for this subject instance
+    const enrollment = await prisma.enrolment.findFirst({
+      where: {
+        subjectInstanceId: subjectInstanceId,
+        studentId: user.id
+      }
+    });
+
+    if (!enrollment) {
+      throw new Error('You are not enrolled in this subject.');
+    }
+
+    // Get all announcements for this subject instance
+    const announcements = await prisma.announcement.findMany({
+      where: {
+        subjectInstanceId: subjectInstanceId
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    return {
+      success: true,
+      data: announcements
+    };
+  } catch (error) {
+    console.error('Error fetching student announcements:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch announcements'
+    };
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+export async function editAnnouncement(data: {
   announcementId: string;
   title: string;
   content: string;
 }) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
+
+    if (!user || !user.id) {
+      throw new Error('User not authenticated.');
     }
-    if (!announcementId || !title || !content) {
-      return { success: false, error: 'All fields are required' };
+
+    // Validate required fields
+    if (!data.announcementId || !data.title || !data.content) {
+      throw new Error('All fields are required.');
     }
-    // Check ownership and get subjectInstanceId
+
+    // Check if announcement exists and belongs to the user
     const announcement = await prisma.announcement.findUnique({
-      where: { id: announcementId }
+      where: {
+        id: data.announcementId,
+        userId: user.id
+      }
     });
-    if (!announcement || announcement.userId !== user.id) {
-      return { success: false, error: 'Announcement not found or no permission' };
+
+    if (!announcement) {
+      throw new Error('Announcement not found or you do not have permission to edit it.');
     }
-    // Update announcement and enrolments in a transaction
-    const updated = await prisma.$transaction(async (tx) => {
-      const updatedAnnouncement = await tx.announcement.update({
-        where: { id: announcementId },
-        data: { title, content }
-      });
-      await tx.enrolment.updateMany({
-        where: { subjectInstanceId: announcement.subjectInstanceId },
-        data: { hasNewContent: true }
-      });
-      return updatedAnnouncement;
+
+    // Update the announcement
+    const updatedAnnouncement = await prisma.announcement.update({
+      where: {
+        id: data.announcementId
+      },
+      data: {
+        title: data.title,
+        content: data.content
+      }
     });
-    return { success: true, data: updated };
+
+    return {
+      success: true,
+      data: updatedAnnouncement
+    };
   } catch (error) {
     console.error('Error editing announcement:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to edit announcement' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to edit announcement'
+    };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function deleteAnnouncement(announcementId: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
+
+    if (!user || !user.id) {
+      throw new Error('User not authenticated.');
     }
-    // Check ownership
+
+    // Check if announcement exists and belongs to the user
     const announcement = await prisma.announcement.findUnique({
-      where: { id: announcementId }
+      where: {
+        id: announcementId,
+        userId: user.id
+      }
     });
-    if (!announcement || announcement.userId !== user.id) {
-      return { success: false, error: 'Announcement not found or no permission' };
+
+    if (!announcement) {
+      throw new Error('Announcement not found or you do not have permission to delete it.');
     }
-    await prisma.announcement.delete({ where: { id: announcementId } });
-    return { success: true };
+
+    // Delete the announcement
+    await prisma.announcement.delete({
+      where: {
+        id: announcementId
+      }
+    });
+
+    return {
+      success: true
+    };
   } catch (error) {
     console.error('Error deleting announcement:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to delete announcement' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete announcement'
+    };
+  } finally {
+    await prisma.$disconnect();
   }
 }

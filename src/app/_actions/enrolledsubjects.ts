@@ -1,17 +1,15 @@
 'use server';
 
 import { currentUser } from '@clerk/nextjs/server';
-import { prisma } from '../../lib/prisma';
+import { getPrismaClient } from '../../lib/prisma';
 
 export const getEnrolledSubjects = async () => {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
-
-    if (!user || !user.id) {
-      return {
-        success: false,
-        error: 'User not authenticated.'
-      };
+    if (!user) {
+      throw new Error('User not authenticated');
     }
 
     const enrolledSubjects = await prisma.enrolment.findMany({
@@ -22,39 +20,26 @@ export const getEnrolledSubjects = async () => {
         subjectInstance: {
           include: {
             subject: true,
-            requirements: {
-              orderBy: [
-                { type: 'asc' },
-                { requirementNumber: 'asc' }
-              ]
-            }
           },
         },
-        submissions: {
-          include: {
-            requirement: true
-          }
-        }
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    return {
-      success: true,
-      data: enrolledSubjects
-    };
+    return enrolledSubjects;
   } catch (error) {
-    console.error("[GET_ENROLLED_SUBJECTS]", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch enrolled subjects'
-    };
+    console.error('Error fetching enrolled subjects:', error);
+    throw new Error('Failed to fetch enrolled subjects');
+  } finally {
+    await prisma.$disconnect();
   }
 };
 
 export async function updateEnrollmentStatus(enrollmentId: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -83,5 +68,7 @@ export async function updateEnrollmentStatus(enrollmentId: string) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update enrollment status'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 } 

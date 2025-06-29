@@ -1,33 +1,33 @@
 'use server';
 
 import { currentUser } from '@clerk/nextjs/server';
-import { prisma } from '../../lib/prisma';
+import { getPrismaClient } from '../../lib/prisma';
 
 export async function enrollInSubject(subjectInstanceId: string, enrollmentCode: number) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
     if (!user || !user.id) {
-      return {
-        success: false,
-        error: 'User not authenticated.'
-      };
+      throw new Error('User not authenticated.');
     }
 
-    // Check if subject instance exists and is active
-    const subjectInstance = await prisma.subjectInstance.findFirst({
+    // Check if the subject instance exists and is active
+    const subjectInstance = await prisma.subjectInstance.findUnique({
       where: {
         id: subjectInstanceId,
-        enrollment: 1, // Check if enrollment is active
-        enrolmentCode: enrollmentCode
+        enrollment: 1 // Only active instances
       }
     });
 
     if (!subjectInstance) {
-      return {
-        success: false,
-        error: 'Invalid enrollment code or subject is not available for enrollment.'
-      };
+      throw new Error('Subject instance not found or not available for enrollment.');
+    }
+
+    // Check if the enrollment code matches
+    if (subjectInstance.enrolmentCode !== enrollmentCode) {
+      throw new Error('Invalid enrollment code.');
     }
 
     // Check if user is already enrolled
@@ -39,20 +39,16 @@ export async function enrollInSubject(subjectInstanceId: string, enrollmentCode:
     });
 
     if (existingEnrollment) {
-      return {
-        success: false,
-        error: 'You are already enrolled in this subject.'
-      };
+      throw new Error('You are already enrolled in this subject.');
     }
 
-    // Create enrollment
+    // Create the enrollment
     const enrollment = await prisma.enrolment.create({
       data: {
         subjectInstanceId: subjectInstanceId,
         studentId: user.id,
-        email: user.emailAddresses[0].emailAddress,
-        code: enrollmentCode,
-        hasNewContent: false
+        email: user.emailAddresses[0]?.emailAddress || '',
+        code: enrollmentCode
       }
     });
 
@@ -66,5 +62,7 @@ export async function enrollInSubject(subjectInstanceId: string, enrollmentCode:
       success: false,
       error: error instanceof Error ? error.message : 'Failed to enroll in subject'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }

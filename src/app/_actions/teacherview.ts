@@ -1,9 +1,11 @@
 'use server';
 
 import { currentUser } from '@clerk/nextjs/server';
-import { prisma } from '../../lib/prisma';
+import { getPrismaClient } from '../../lib/prisma';
 
 export async function getTeacherRequirementDetail(requirementId: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -11,10 +13,13 @@ export async function getTeacherRequirementDetail(requirementId: string) {
       throw new Error('User not authenticated.');
     }
 
-    // Get the requirement with its subject instance and all submissions
+    // Get the requirement with all submissions
     const requirement = await prisma.requirement.findUnique({
       where: {
-        id: requirementId
+        id: requirementId,
+        subjectInstance: {
+          userId: user.id // Ensure the teacher owns this subject instance
+        }
       },
       include: {
         subjectInstance: {
@@ -39,42 +44,27 @@ export async function getTeacherRequirementDetail(requirementId: string) {
     });
 
     if (!requirement) {
-      throw new Error('Requirement not found.');
+      throw new Error('Requirement not found or you do not have permission to view it.');
     }
-
-    // Verify that the user is the teacher of this subject instance
-    if (requirement.subjectInstance.userId !== user.id) {
-      throw new Error('You do not have permission to view this requirement.');
-    }
-
-    // Transform the data to include submission status and student info
-    const requirementWithDetails = {
-      ...requirement,
-      submissions: requirement.submissions.map(submission => ({
-        ...submission,
-        studentEmail: submission.enrollment.email,
-        status: submission.status === 1 ? 'complete' : 'draft',
-        enrollment: {
-          studentId: submission.enrollment.studentId,
-          email: submission.enrollment.email
-        }
-      }))
-    };
 
     return {
       success: true,
-      data: requirementWithDetails
+      data: requirement
     };
   } catch (error) {
-    console.error('Error fetching requirement detail:', error);
+    console.error('Error fetching teacher requirement detail:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch requirement detail'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function submitGrade(submissionId: string, score: number, feedback: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -127,5 +117,7 @@ export async function submitGrade(submissionId: string, score: number, feedback:
       success: false,
       error: error instanceof Error ? error.message : 'Failed to submit grade'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }

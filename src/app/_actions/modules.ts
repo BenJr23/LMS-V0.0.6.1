@@ -1,72 +1,49 @@
 'use server';
 
 import { currentUser } from '@clerk/nextjs/server';
-import { prisma } from '../../lib/prisma';
+import { getPrismaClient } from '../../lib/prisma';
 import { createClient } from '@supabase/supabase-js';
 
 // Create a Supabase client with service role key to bypass RLS
-const supabaseAdmin = createClient(
+const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-interface CreateModuleFolderParams {
-  subjectInstanceId: string;
-  folderName: string;
-}
-
-export async function createModuleFolder({
-  subjectInstanceId,
-  folderName
-}: CreateModuleFolderParams) {
+export async function createModuleFolder(data: { subjectInstanceId: string; folderName: string }) {
+  const prisma = getPrismaClient();
+  
   try {
-    // Get the current authenticated user
     const user = await currentUser();
-    if (!user) {
-      return {
-        success: false,
-        error: 'User not authenticated'
-      };
+
+    if (!user || !user.id) {
+      throw new Error('User not authenticated.');
     }
 
-    // Validate input
-    if (!subjectInstanceId || !folderName.trim()) {
-      return {
-        success: false,
-        error: 'All fields are required'
-      };
+    // Validate required fields
+    if (!data.subjectInstanceId || !data.folderName) {
+      throw new Error('Subject instance ID and folder name are required.');
     }
 
-    // Check if folder name already exists for this subject instance
-    const existingFolder = await prisma.moduleFolder.findFirst({
+    // Check if subject instance exists and belongs to the user
+    const subjectInstance = await prisma.subjectInstance.findUnique({
       where: {
-        subjectInstanceId,
-        folderName: folderName.trim()
+        id: data.subjectInstanceId,
+        userId: user.id
       }
     });
 
-    if (existingFolder) {
-      return {
-        success: false,
-        error: 'A folder with this name already exists'
-      };
+    if (!subjectInstance) {
+      throw new Error('Subject instance not found or you do not have permission to add modules.');
     }
 
-    // Create the module folder and update enrolments in a transaction
-    const moduleFolder = await prisma.$transaction(async (tx) => {
-      const newFolder = await tx.moduleFolder.create({
-        data: {
-          subjectInstanceId,
-          userId: user.id,
-          folderName: folderName.trim()
-        }
-      });
-      // Update all enrolments for this subject instance
-      await tx.enrolment.updateMany({
-        where: { subjectInstanceId },
-        data: { hasNewContent: true }
-      });
-      return newFolder;
+    // Create the module folder
+    const moduleFolder = await prisma.moduleFolder.create({
+      data: {
+        subjectInstanceId: data.subjectInstanceId,
+        userId: user.id,
+        folderName: data.folderName
+      }
     });
 
     return {
@@ -79,6 +56,8 @@ export async function createModuleFolder({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create module folder'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -113,7 +92,7 @@ export async function uploadModuleFile(file: File, moduleFolderId: string, fileN
       moduleFolderId
     });
 
-    const { error } = await supabaseAdmin.storage
+    const { error } = await supabase.storage
       .from('lms')
       .upload(filePath, buffer, {
         contentType: file.type,
@@ -126,7 +105,7 @@ export async function uploadModuleFile(file: File, moduleFolderId: string, fileN
     }
 
     // Get the public URL
-    const { data: { publicUrl } } = supabaseAdmin.storage
+    const { data: { publicUrl } } = supabase.storage
       .from('lms')
       .getPublicUrl(filePath);
 
@@ -155,6 +134,8 @@ export async function createUploadedContent(data: {
   subjectInstanceId: string;
   moduleFolderId: string;
 }) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
     if (!user) {
@@ -192,10 +173,14 @@ export async function createUploadedContent(data: {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create uploaded content'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function deleteModuleFile(fileId: string, filePath: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
     if (!user) {
@@ -206,7 +191,7 @@ export async function deleteModuleFile(fileId: string, filePath: string) {
     }
 
     // First, delete the file from Supabase storage
-    const { error: storageError } = await supabaseAdmin.storage
+    const { error: storageError } = await supabase.storage
       .from('lms')
       .remove([filePath]);
 
@@ -239,6 +224,8 @@ export async function deleteModuleFile(fileId: string, filePath: string) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete file'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -246,6 +233,8 @@ export async function editModuleFolder({
   folderId,
   folderName
 }: { folderId: string; folderName: string }) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
     if (!user) {
@@ -313,10 +302,14 @@ export async function editModuleFolder({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to edit module folder'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function deleteModuleFolder(folderId: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
     if (!user) {
@@ -339,9 +332,9 @@ export async function deleteModuleFolder(folderId: string) {
     }
 
     // Delete all files from Supabase storage
-    const filePaths = folder.uploadedContents.map(file => file.filePath);
+    const filePaths = folder.uploadedContents.map((file: { filePath: string }) => file.filePath);
     if (filePaths.length > 0) {
-      const { error: storageError } = await supabaseAdmin.storage
+      const { error: storageError } = await supabase.storage
         .from('lms')
         .remove(filePaths);
       if (storageError) {
@@ -353,12 +346,7 @@ export async function deleteModuleFolder(folderId: string) {
       }
     }
 
-    // Delete all UploadedContent records for this folder
-    await prisma.uploadedContent.deleteMany({
-      where: { moduleFolderId: folderId }
-    });
-
-    // Delete the folder itself
+    // Delete the folder and all its contents from the database
     await prisma.moduleFolder.delete({
       where: { id: folderId }
     });
@@ -372,5 +360,7 @@ export async function deleteModuleFolder(folderId: string) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete module folder'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }

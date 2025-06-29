@@ -1,7 +1,7 @@
 'use server';
 
 import { currentUser } from '@clerk/nextjs/server';
-import { prisma } from '../../lib/prisma';
+import { getPrismaClient } from '../../lib/prisma';
 import { revalidatePath } from 'next/cache';
 
 interface CreateSubmissionData {
@@ -26,6 +26,8 @@ interface UpdateSubmissionData {
 }
 
 export async function createSubmission(data: CreateSubmissionData) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -33,16 +35,19 @@ export async function createSubmission(data: CreateSubmissionData) {
       throw new Error('User not authenticated.');
     }
 
-    // Get the user's enrollment for this requirement
+    // Validate required fields
+    if (!data.requirementId || !data.title) {
+      throw new Error('Requirement ID and title are required.');
+    }
+
+    // Get the requirement to find the subject instance
     const requirement = await prisma.requirement.findUnique({
       where: { id: data.requirementId },
       include: {
         subjectInstance: {
           include: {
             enrolments: {
-              where: {
-                studentId: user.id
-              }
+              where: { studentId: user.id }
             }
           }
         }
@@ -50,12 +55,12 @@ export async function createSubmission(data: CreateSubmissionData) {
     });
 
     if (!requirement) {
-      throw new Error('Requirement not found');
+      throw new Error('Requirement not found.');
     }
 
     const enrollment = requirement.subjectInstance.enrolments[0];
     if (!enrollment) {
-      throw new Error('You are not enrolled in this subject');
+      throw new Error('You are not enrolled in this subject.');
     }
 
     // Check if submission already exists
@@ -67,7 +72,7 @@ export async function createSubmission(data: CreateSubmissionData) {
     });
 
     if (existingSubmission) {
-      throw new Error('You have already created a submission for this requirement');
+      throw new Error('You have already submitted for this requirement.');
     }
 
     // Create the submission
@@ -77,8 +82,8 @@ export async function createSubmission(data: CreateSubmissionData) {
         enrollmentId: enrollment.id,
         userId: user.id,
         title: data.title,
-        content: data.content,
-        filePath: data.filePath,
+        content: data.content || null,
+        filePath: data.filePath || null,
         status: 0 // Start as draft
       }
     });
@@ -96,10 +101,14 @@ export async function createSubmission(data: CreateSubmissionData) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create submission'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function updateSubmissionStatus(data: UpdateSubmissionStatusData) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -151,10 +160,14 @@ export async function updateSubmissionStatus(data: UpdateSubmissionStatusData) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update submission status'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function getSubmission(submissionId: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -196,10 +209,14 @@ export async function getSubmission(submissionId: string) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch submission'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function editSubmission(data: UpdateSubmissionData) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -257,10 +274,14 @@ export async function editSubmission(data: UpdateSubmissionData) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to edit submission'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function deleteSubmission(submissionId: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -311,5 +332,7 @@ export async function deleteSubmission(submissionId: string) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete submission'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }

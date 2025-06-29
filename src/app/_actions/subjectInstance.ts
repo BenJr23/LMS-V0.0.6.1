@@ -1,17 +1,7 @@
 'use server';
 
 import { currentUser } from '@clerk/nextjs/server';
-import { prisma } from '../../lib/prisma';
-
-type CreateSubjectInstanceInput = {
-  subjectId: string;
-  teacherName: string;
-  grade: string;
-  section: string;
-  enrolmentCode: number;
-  icon: string;
-  enrollment: number;
-};
+import { getPrismaClient } from '../../lib/prisma';
 
 type EditSubjectInstanceInput = {
   id: string;
@@ -22,6 +12,8 @@ type EditSubjectInstanceInput = {
 };
 
 export async function getSubjectInstances() {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -34,7 +26,15 @@ export async function getSubjectInstances() {
         userId: user.id
       },
       include: {
-        subject: true
+        subject: true,
+        enrolments: {
+          select: {
+            id: true,
+            studentId: true,
+            email: true,
+            createdAt: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
@@ -51,10 +51,20 @@ export async function getSubjectInstances() {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch subject instances'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
-export async function createSubjectInstance(data: CreateSubjectInstanceInput) {
+export async function createSubjectInstance(data: {
+  subjectId: string;
+  teacherName: string;
+  grade: string;
+  section: string;
+  icon: string;
+}) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -63,18 +73,12 @@ export async function createSubjectInstance(data: CreateSubjectInstanceInput) {
     }
 
     // Validate required fields
-    if (!data.subjectId || !data.teacherName || !data.grade || !data.section || !data.enrolmentCode || !data.icon) {
+    if (!data.subjectId || !data.teacherName || !data.grade || !data.section || !data.icon) {
       throw new Error('All fields are required.');
     }
 
-    // Check if subject exists
-    const subject = await prisma.subject.findUnique({
-      where: { id: data.subjectId }
-    });
-
-    if (!subject) {
-      throw new Error('Subject not found.');
-    }
+    // Generate a random enrollment code
+    const enrollmentCode = Math.floor(100000 + Math.random() * 900000);
 
     // Create the subject instance
     const subjectInstance = await prisma.subjectInstance.create({
@@ -84,29 +88,33 @@ export async function createSubjectInstance(data: CreateSubjectInstanceInput) {
         teacherName: data.teacherName,
         grade: data.grade,
         section: data.section,
-        enrolmentCode: data.enrolmentCode,
         icon: data.icon,
-        enrollment: data.enrollment || 1, // Default to 1 (active) if not provided
+        enrollment: 1, // Active by default
+        enrolmentCode: enrollmentCode
       },
       include: {
         subject: true
       }
     });
 
-    return { 
-      success: true, 
-      data: subjectInstance 
+    return {
+      success: true,
+      data: subjectInstance
     };
   } catch (error) {
     console.error('Error creating subject instance:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to create subject instance' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create subject instance'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function editSubjectInstance(data: EditSubjectInstanceInput) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -158,10 +166,14 @@ export async function editSubjectInstance(data: EditSubjectInstanceInput) {
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to update subject instance' 
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function getSubjectInstance(id: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -202,10 +214,14 @@ export async function getSubjectInstance(id: string) {
   } catch (error) {
     console.error('Error fetching subject instance:', error);
     throw error;
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function deleteSubjectInstance(id: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -304,10 +320,14 @@ export async function deleteSubjectInstance(id: string) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete subject instance'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function getStudentSubjectInstance(id: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -356,5 +376,7 @@ export async function getStudentSubjectInstance(id: string) {
   } catch (error) {
     console.error('Error fetching student subject instance:', error);
     throw error;
+  } finally {
+    await prisma.$disconnect();
   }
 }

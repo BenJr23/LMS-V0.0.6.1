@@ -1,9 +1,11 @@
 'use server';
 
-import { prisma } from '../../lib/prisma';
+import { getPrismaClient } from '../../lib/prisma';
 import { Prisma } from '../../generated/prisma';
 
 export async function getSubjects() {
+  const prisma = getPrismaClient();
+  
   try {
     const subjects = await prisma.subject.findMany({
       orderBy: {
@@ -15,10 +17,14 @@ export async function getSubjects() {
   } catch (error) {
     console.error('Error fetching subjects:', error);
     throw new Error('Failed to fetch subjects');
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function createSubject(data: { name: string; code: string; createdById: string }) {
+  const prisma = getPrismaClient();
+  
   try {
     const subject = await prisma.subject.create({
       data: {
@@ -35,10 +41,14 @@ export async function createSubject(data: { name: string; code: string; createdB
       throw new Error('A subject with this code already exists');
     }
     throw new Error('Failed to create subject');
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function updateSubject(data: { id: string; name: string; code: string }) {
+  const prisma = getPrismaClient();
+  
   try {
     // Check if another subject with the same code exists
     const existingSubject = await prisma.subject.findFirst({
@@ -76,10 +86,14 @@ export async function updateSubject(data: { id: string; name: string; code: stri
       }
     }
     throw error instanceof Error ? error : new Error('Failed to update subject');
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function deleteSubject(id: string) {
+  const prisma = getPrismaClient();
+  
   try {
     // First check if the subject exists
     const subject = await prisma.subject.findUnique({
@@ -104,5 +118,7 @@ export async function deleteSubject(id: string) {
       }
     }
     throw error instanceof Error ? error : new Error('Failed to delete subject');
+  } finally {
+    await prisma.$disconnect();
   }
 }

@@ -1,46 +1,34 @@
 'use server';
 
 import { currentUser } from '@clerk/nextjs/server';
-import { prisma } from '../../lib/prisma';
+import { getPrismaClient } from '../../lib/prisma';
 
 export const getActiveSubjectInstances = async () => {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
-
-    if (!user || !user.id) {
-      return {
-        success: false,
-        error: 'User not authenticated.'
-      };
+    if (!user) {
+      throw new Error('User not authenticated');
     }
 
-    // Get all active subject instances
-    const activeInstances = await prisma.subjectInstance.findMany({
+    const subjectInstances = await prisma.subjectInstance.findMany({
       where: {
-        enrollment: 1, // Get only active instances
+        enrollment: 1, // Only active instances
       },
       include: {
-        subject: true, // Include the parent subject information
-        enrolments: {
-          where: {
-            studentId: user.id
-          }
-        }
+        subject: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
 
-    // Filter out subjects that the user is already enrolled in
-    const availableInstances = activeInstances.filter(instance => instance.enrolments.length === 0);
-
-    return {
-      success: true,
-      data: availableInstances
-    };
+    return subjectInstances;
   } catch (error) {
-    console.error("[GET_ACTIVE_SUBJECT_INSTANCES]", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch active subject instances'
-    };
+    console.error('Error fetching active subject instances:', error);
+    throw new Error('Failed to fetch active subject instances');
+  } finally {
+    await prisma.$disconnect();
   }
 };

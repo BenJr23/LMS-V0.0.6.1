@@ -1,34 +1,21 @@
 import { PrismaClient } from '../generated/prisma'
 
-// Connection pool for serverless environments
-let prisma: PrismaClient
-
-declare global {
-  var __db: PrismaClient | undefined
-}
-
-// This is needed because in development we don't want to restart
-// the server with every change, but we want to make sure we don't
-// create a new connection to the DB with every change either.
-if (process.env.NODE_ENV === 'production') {
-  prisma = new PrismaClient({
-    log: ['error'],
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
+// Always create a new Prisma client instance
+// This prevents connection pooling issues in serverless environments
+const createPrismaClient = () => {
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   })
-} else {
-  if (!global.__db) {
-    global.__db = new PrismaClient({
-      log: ['query', 'error', 'warn'],
-    })
-  }
-  prisma = global.__db
 }
 
-export { prisma }
+// Export a function that creates a new client each time
+export const getPrismaClient = () => {
+  return createPrismaClient()
+}
+
+// For backward compatibility, also export a default instance
+// but this will create a new client each time it's imported
+export const prisma = createPrismaClient()
 
 // Graceful shutdown
 if (process.env.NODE_ENV === 'production') {

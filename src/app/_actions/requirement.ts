@@ -1,7 +1,7 @@
 'use server';
 
 import { currentUser } from '@clerk/nextjs/server';
-import { prisma } from '../../lib/prisma';
+import { getPrismaClient } from '../../lib/prisma';
 
 type CreateRequirementInput = {
   subjectInstanceId: string;
@@ -21,6 +21,8 @@ type EditRequirementInput = {
 };
 
 export async function createRequirement(data: CreateRequirementInput) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -94,10 +96,14 @@ export async function createRequirement(data: CreateRequirementInput) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create requirement'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function getRequirements(subjectInstanceId: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -138,10 +144,14 @@ export async function getRequirements(subjectInstanceId: string) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch requirements'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function getStudentRequirements(subjectInstanceId: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -217,10 +227,14 @@ export async function getStudentRequirements(subjectInstanceId: string) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch requirements'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function getStudentRequirementDetail(requirementId: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -282,10 +296,14 @@ export async function getStudentRequirementDetail(requirementId: string) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch requirement detail'
     };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function editRequirement(data: EditRequirementInput) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -354,6 +372,8 @@ export async function editRequirement(data: EditRequirementInput) {
 }
 
 export async function deleteRequirement(requirementId: string) {
+  const prisma = getPrismaClient();
+  
   try {
     const user = await currentUser();
 
@@ -407,5 +427,33 @@ export async function deleteRequirement(requirementId: string) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete requirement'
     };
+  }
+}
+
+export async function getRequirementsBySubjectInstance(subjectInstanceId: string) {
+  const prisma = getPrismaClient();
+  
+  try {
+    const user = await currentUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const requirements = await prisma.requirement.findMany({
+      where: {
+        subjectInstanceId: subjectInstanceId,
+      },
+      orderBy: [
+        { type: 'asc' },
+        { requirementNumber: 'asc' }
+      ],
+    });
+
+    return requirements;
+  } catch (error) {
+    console.error('Error fetching requirements:', error);
+    throw new Error('Failed to fetch requirements');
+  } finally {
+    await prisma.$disconnect();
   }
 }
