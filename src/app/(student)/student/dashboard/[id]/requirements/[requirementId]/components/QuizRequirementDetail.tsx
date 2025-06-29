@@ -369,6 +369,50 @@ function DeleteConfirmationModal({ isOpen, onClose, onConfirm, isDeleting }: Del
   );
 }
 
+function CompleteSubmissionConfirmationModal({ isOpen, onClose, onConfirm, isCompleting }: { isOpen: boolean; onClose: () => void; onConfirm: () => void; isCompleting: boolean }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-blue-100 p-2 rounded-full">
+              <Upload className="w-6 h-6 text-blue-500" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Complete Submission</h2>
+          </div>
+          <p className="text-gray-600">
+            Are you sure you want to mark this submission as complete? You will not be able to edit it after this.
+          </p>
+        </div>
+        <div className="p-6 flex justify-end gap-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            disabled={isCompleting}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-[#800000] text-white rounded-lg hover:bg-[#800000]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            disabled={isCompleting}
+          >
+            {isCompleting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Completing...
+              </>
+            ) : (
+              'Complete Submission'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function getSubmissionStatusColor(submission: RequirementDetail['submission']) {
   if (!submission) return 'bg-gray-100 text-gray-600';
   if (submission.graded) return 'bg-green-100 text-green-600';
@@ -397,6 +441,8 @@ export default function QuizRequirementDetail({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const fetchRequirement = async () => {
     try {
@@ -430,6 +476,7 @@ export default function QuizRequirementDetail({
     if (!requirement?.submission) return;
 
     try {
+      setIsCompleting(true);
       const response = await updateSubmissionStatus({
         submissionId: requirement.submission.id,
         status: 1 // Complete
@@ -438,12 +485,15 @@ export default function QuizRequirementDetail({
       if (response.success) {
         toast.success('Submission completed successfully');
         fetchRequirement();
+        setIsCompleteModalOpen(false);
       } else {
         toast.error(response.error || 'Failed to complete submission');
       }
     } catch (error) {
       console.error('Error completing submission:', error);
       toast.error('Failed to complete submission');
+    } finally {
+      setIsCompleting(false);
     }
   };
 
@@ -662,7 +712,7 @@ export default function QuizRequirementDetail({
                   Edit Submission
                 </button>
                 <button
-                  onClick={handleCompleteSubmission}
+                  onClick={() => setIsCompleteModalOpen(true)}
                   className="px-6 py-3 bg-[#800000] text-white rounded-lg hover:bg-[#800000]/90 transition-colors text-lg font-medium"
                 >
                   Complete Submission
@@ -711,6 +761,14 @@ export default function QuizRequirementDetail({
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteSubmission}
         isDeleting={isDeleting}
+      />
+
+      {/* Add the Complete Submission Confirmation Modal */}
+      <CompleteSubmissionConfirmationModal
+        isOpen={isCompleteModalOpen}
+        onClose={() => setIsCompleteModalOpen(false)}
+        onConfirm={handleCompleteSubmission}
+        isCompleting={isCompleting}
       />
     </div>
   );

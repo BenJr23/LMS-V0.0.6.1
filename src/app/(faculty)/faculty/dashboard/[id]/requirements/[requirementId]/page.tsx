@@ -52,6 +52,49 @@ interface RequirementDetail {
   };
 }
 
+// Helper function to determine submission status
+function getSubmissionStatus(submission: Submission, requirementDeadline: Date): string {
+  if (submission.status === 'complete') {
+    // Check if submission is overdue
+    const submissionDate = new Date(submission.createdAt);
+    const deadline = new Date(requirementDeadline);
+    
+    if (submissionDate > deadline) {
+      return 'late';
+    }
+    return 'complete';
+  }
+  return submission.status;
+}
+
+// Helper function to get status display text and styling
+function getStatusDisplay(status: string, graded: boolean) {
+  if (graded) {
+    return {
+      text: 'Graded',
+      className: 'bg-green-100 text-green-700'
+    };
+  }
+  
+  switch (status) {
+    case 'complete':
+      return {
+        text: 'Complete',
+        className: 'bg-blue-100 text-blue-700'
+      };
+    case 'late':
+      return {
+        text: 'Late',
+        className: 'bg-red-100 text-red-700'
+      };
+    default:
+      return {
+        text: 'Pending',
+        className: 'bg-gray-100 text-gray-700'
+      };
+  }
+}
+
 export default function TeacherRequirementDetailPage({ params }: { params: Promise<{ id: string; requirementId: string }> }) {
   const router = useRouter();
   const resolvedParams = use(params);
@@ -210,34 +253,35 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
             <tbody className="divide-y divide-pink-50">
               {requirement.submissions
                 .filter(submission => submission.status === 'complete')
-                .map((submission) => (
-                <tr key={submission.id} className="hover:bg-pink-50/50">
-                  <td className="p-4 text-gray-700">
-                    {submission.studentEmail}
-                  </td>
-                  <td className="p-4 text-gray-700 font-medium">
-                    {submission.title}
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      submission.graded 
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {submission.graded ? 'Graded' : 'Pending'}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <button
-                      onClick={() => handleViewSubmission(submission)}
-                      className="p-1.5 rounded-md hover:bg-pink-100 text-[#800000] transition-colors duration-200"
-                      title="View Details"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                .map((submission) => {
+                  const submissionStatus = getSubmissionStatus(submission, requirement.deadline);
+                  const statusDisplay = getStatusDisplay(submissionStatus, submission.graded);
+                  
+                  return (
+                    <tr key={submission.id} className="hover:bg-pink-50/50">
+                      <td className="p-4 text-gray-700">
+                        {submission.studentEmail}
+                      </td>
+                      <td className="p-4 text-gray-700 font-medium">
+                        {submission.title}
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusDisplay.className}`}>
+                          {statusDisplay.text}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <button
+                          onClick={() => handleViewSubmission(submission)}
+                          className="p-1.5 rounded-md hover:bg-pink-100 text-[#800000] transition-colors duration-200"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
@@ -258,6 +302,28 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
                   </p>
                 </div>
 
+                {/* Late Submission Warning */}
+                {(() => {
+                  const submissionStatus = getSubmissionStatus(selectedSubmission, requirement.deadline);
+                  if (submissionStatus === 'late') {
+                    return (
+                      <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          <h3 className="text-lg font-semibold text-red-800">Late Submission</h3>
+                        </div>
+                        <p className="text-red-700 mt-2">
+                          This submission was submitted after the deadline ({new Date(requirement.deadline).toLocaleDateString()}). 
+                          Consider this when grading.
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {/* Submission Information */}
                 <div className="bg-pink-50/50 p-4 rounded-lg">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Submission Information</h3>
@@ -266,7 +332,13 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
                       <span className="font-medium">Title:</span> {selectedSubmission.title || 'No title provided'}
                     </p>
                     <p className="text-gray-700">
-                      <span className="font-medium">Status:</span> {selectedSubmission.status === 'complete' ? 'Completed' : 'Incomplete'}
+                      <span className="font-medium">Status:</span> {
+                        (() => {
+                          const submissionStatus = getSubmissionStatus(selectedSubmission, requirement.deadline);
+                          const statusDisplay = getStatusDisplay(submissionStatus, selectedSubmission.graded);
+                          return statusDisplay.text;
+                        })()
+                      }
                     </p>
                     <p className="text-gray-700">
                       <span className="font-medium">Submitted:</span> {selectedSubmission.createdAt ? new Date(selectedSubmission.createdAt).toLocaleString() : 'Not submitted yet'}
