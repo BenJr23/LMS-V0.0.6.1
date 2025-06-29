@@ -9,7 +9,10 @@ export const getActiveSubjectInstances = async () => {
   try {
     const user = await currentUser();
     if (!user) {
-      throw new Error('User not authenticated');
+      return {
+        success: false,
+        error: 'User not authenticated.'
+      };
     }
 
     const subjectInstances = await prisma.subjectInstance.findMany({
@@ -24,10 +27,16 @@ export const getActiveSubjectInstances = async () => {
       },
     });
 
-    return subjectInstances;
+    return {
+      success: true,
+      data: subjectInstances
+    };
   } catch (error) {
     console.error('Error fetching active subject instances:', error);
-    throw new Error('Failed to fetch active subject instances');
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch active subject instances'
+    };
   } finally {
     await prisma.$disconnect();
   }

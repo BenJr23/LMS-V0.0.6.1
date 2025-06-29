@@ -9,7 +9,10 @@ export const getEnrolledSubjects = async () => {
   try {
     const user = await currentUser();
     if (!user) {
-      throw new Error('User not authenticated');
+      return {
+        success: false,
+        error: 'User not authenticated.'
+      };
     }
 
     const enrolledSubjects = await prisma.enrolment.findMany({
@@ -20,18 +23,35 @@ export const getEnrolledSubjects = async () => {
         subjectInstance: {
           include: {
             subject: true,
+            requirements: {
+              orderBy: [
+                { type: 'asc' },
+                { requirementNumber: 'asc' }
+              ]
+            }
           },
         },
+        submissions: {
+          include: {
+            requirement: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    return enrolledSubjects;
+    return {
+      success: true,
+      data: enrolledSubjects
+    };
   } catch (error) {
     console.error('Error fetching enrolled subjects:', error);
-    throw new Error('Failed to fetch enrolled subjects');
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch enrolled subjects'
+    };
   } finally {
     await prisma.$disconnect();
   }
