@@ -1,17 +1,7 @@
-import pkg from '@prisma/nextjs-monorepo-workaround-plugin';
-const { PrismaNextjsMonorepoWorkaroundPlugin } = pkg;
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client'],
-  },
-  webpack: (config, { isServer, dev }) => {
-    if (isServer && !dev) {
-      config.plugins = config.plugins || [];
-      config.plugins.push(new PrismaNextjsMonorepoWorkaroundPlugin());
-    }
-    return config;
   },
   // Optimize for deployment
   compress: true,
@@ -24,14 +14,6 @@ const nextConfig = {
   },
   // Image optimization
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'stdmlwckqsvozjbivglp.supabase.co',
-        port: '',
-        pathname: '/storage/v1/object/public/lms/**',
-      },
-    ],
     domains: [],
     formats: ['image/webp', 'image/avif'],
   },
