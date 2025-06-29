@@ -814,15 +814,13 @@ export default function SubjectInstancePage({ params }: { params: Promise<{ id: 
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Section</label>
-                <select
+                <input
+                  type="text"
                   value={editForm.section}
                   onChange={(e) => setEditForm(prev => ({ ...prev, section: e.target.value }))}
                   className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#800000] text-gray-800 bg-white"
-                >
-                  <option value="A">A</option>
-                  <option value="B">B</option>
-                  <option value="C">C</option>
-                </select>
+                  placeholder="Enter section"
+                />
               </div>
 
               <div>

@@ -55,8 +55,6 @@ const GRADE_LEVELS = [
   { value: '10', label: 'Grade 10' }
 ] as const;
 
-const SECTIONS = ['A', 'B'] as const;
-
 const ENROLLMENT_STATUS = [
   { value: 1, label: 'Active' },
   { value: 0, label: 'Inactive' },
@@ -558,19 +556,14 @@ export default function FacultyDashboard() {
                       <label htmlFor="section" className="block text-sm font-medium text-gray-700 mb-1">
                         Section
                       </label>
-                      <select
+                      <input
+                        type="text"
                         id="section"
                         value={newSection.section}
                         onChange={(e) => setNewSection(prev => ({ ...prev, section: e.target.value }))}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-800 focus:border-transparent text-gray-900 bg-white"
-                      >
-                        <option value="" className="text-gray-500">Select section</option>
-                        {SECTIONS.map((section) => (
-                          <option key={section} value={section}>
-                            Section {section}
-                          </option>
-                        ))}
-                      </select>
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-800 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
+                        placeholder="Enter section"
+                      />
                     </div>
                   </div>
                   <div>

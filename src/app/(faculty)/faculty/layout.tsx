@@ -40,16 +40,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           {/* System Title */}
           <div className="text-2xl font-bold px-6 pt-2 pb-4 text-center tracking-wide">AI-Powered LMS</div>
 
-          {/* Top separator */}
-          <div className="border-b border-gray-200/60 mx-6 mt-2"></div>
 
           {/* Label */}
           <div className="px-6 py-3 text-lg font-bold text-white text-center">
             Faculty Portal
           </div>
 
-          {/* Bottom separator */}
-          <div className="border-b border-gray-200/60 mx-6 mb-4"></div>
 
           {/* Nav links */}
           <nav className="px-4">
