@@ -1,7 +1,27 @@
-import { PrismaPlugin } from '@prisma/nextjs-monorepo-workaround-plugin'
+import { PrismaNextjsMonorepoWorkaroundPlugin } from '@prisma/nextjs-monorepo-workaround-plugin'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client'],
+  },
+  webpack: (config, { isServer, dev }) => {
+    if (isServer && !dev) {
+      config.plugins = config.plugins || []
+      config.plugins.push(new PrismaNextjsMonorepoWorkaroundPlugin())
+    }
+    return config
+  },
+  // Optimize for deployment
+  compress: true,
+  poweredByHeader: false,
+  generateEtags: false,
+  // Error handling
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
+  // Image optimization
   images: {
     remotePatterns: [
       {
@@ -11,18 +31,41 @@ const nextConfig = {
         pathname: '/storage/v1/object/public/lms/**',
       },
     ],
+    domains: [],
+    formats: ['image/webp', 'image/avif'],
   },
-  // Use webpack only when not using Turbopack
-  ...(process.env.TURBOPACK ? {} : {
-    webpack: (config, { isServer }) => {
-      if (isServer) {
-        config.plugins = [...config.plugins, new PrismaPlugin()]
-      }
-      return config
-    },
-  }),
-  // Updated property name for server external packages
-  serverExternalPackages: ['@prisma/client']
+  // Security headers
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+        ],
+      },
+    ]
+  },
+  // Redirects for better UX
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/faculty-login',
+        permanent: false,
+      },
+    ]
+  },
 }
 
 export default nextConfig 
