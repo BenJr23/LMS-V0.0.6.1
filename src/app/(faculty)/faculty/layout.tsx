@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useClerk, useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { GraduationCap } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, isLoaded } = useUser();
@@ -37,13 +38,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
           {/* System Title */}
-          <div className="text-2xl font-bold px-6 pt-2 pb-4 text-center tracking-wide">LMS Portal</div>
+          <div className="text-2xl font-bold px-6 pt-2 pb-4 text-center tracking-wide">AI-Powered LMS</div>
 
           {/* Top separator */}
           <div className="border-b border-gray-200/60 mx-6 mt-2"></div>
 
           {/* Label */}
-          <div className="px-6 py-2 text-sm font-medium text-white text-center">
+          <div className="px-6 py-3 text-lg font-bold text-white text-center">
             Faculty Portal
           </div>
 
@@ -54,7 +55,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <nav className="px-4">
             <ul className="space-y-2">
               <li>
-                <Link href="/faculty/dashboard" className="block px-4 py-2 rounded-lg hover:bg-white/20 transition font-medium">
+                <Link href="/faculty/dashboard" className="flex items-center px-4 py-3 rounded-lg hover:bg-white/20 transition font-bold">
+                  <GraduationCap className="w-5 h-5 mr-3" />
                   Dashboard
                 </Link>
               </li>

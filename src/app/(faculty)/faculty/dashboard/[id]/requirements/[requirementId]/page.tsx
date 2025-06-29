@@ -247,6 +247,7 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
                 <th className="p-4 text-left font-semibold text-[#800000]">Student Email</th>
                 <th className="p-4 text-left font-semibold text-[#800000]">Submission Title</th>
                 <th className="p-4 text-left font-semibold text-[#800000]">Grading Status</th>
+                <th className="p-4 text-left font-semibold text-[#800000]">Score</th>
                 <th className="p-4 text-left font-semibold text-[#800000]">Actions</th>
               </tr>
             </thead>
@@ -269,6 +270,9 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusDisplay.className}`}>
                           {statusDisplay.text}
                         </span>
+                      </td>
+                      <td className="p-4">
+                        {submission.score ? `${submission.score}/${requirement.scoreBase}` : 'N/A'}
                       </td>
                       <td className="p-4">
                         <button
