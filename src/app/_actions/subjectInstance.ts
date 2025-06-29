@@ -62,6 +62,8 @@ export async function createSubjectInstance(data: {
   grade: string;
   section: string;
   icon: string;
+  enrolmentCode?: number;
+  enrollment?: number;
 }) {
   const prisma = getPrismaClient();
   
@@ -77,8 +79,8 @@ export async function createSubjectInstance(data: {
       throw new Error('All fields are required.');
     }
 
-    // Generate a random enrollment code
-    const enrollmentCode = Math.floor(100000 + Math.random() * 900000);
+    // Generate a random enrollment code if not provided
+    const enrollmentCode = data.enrolmentCode || Math.floor(100000 + Math.random() * 900000);
 
     // Create the subject instance
     const subjectInstance = await prisma.subjectInstance.create({
@@ -89,7 +91,7 @@ export async function createSubjectInstance(data: {
         grade: data.grade,
         section: data.section,
         icon: data.icon,
-        enrollment: 1, // Active by default
+        enrollment: data.enrollment || 1, // Use provided value or default to 1 (active)
         enrolmentCode: enrollmentCode
       },
       include: {
