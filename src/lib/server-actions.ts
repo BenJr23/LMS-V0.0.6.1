@@ -1,12 +1,12 @@
 import { revalidatePath } from 'next/cache';
 
-export type ServerActionResult<T = any> = {
+export type ServerActionResult<T = unknown> = {
   success: boolean;
   data?: T;
   error?: string;
 };
 
-export function createServerAction<T extends any[], R>(
+export function createServerAction<T extends unknown[], R>(
   action: (...args: T) => Promise<R>
 ) {
   return async (...args: T): Promise<ServerActionResult<R>> => {
@@ -26,7 +26,7 @@ export function createServerAction<T extends any[], R>(
   };
 }
 
-export function createServerActionWithRevalidation<T extends any[], R>(
+export function createServerActionWithRevalidation<T extends unknown[], R>(
   action: (...args: T) => Promise<R>,
   pathsToRevalidate: string[]
 ) {
