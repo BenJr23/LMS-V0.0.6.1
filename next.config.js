@@ -12,15 +12,17 @@ const nextConfig = {
       },
     ],
   },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.plugins = [...config.plugins, new PrismaPlugin()]
-    }
-    return config
-  },
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client']
-  }
+  // Use webpack only when not using Turbopack
+  ...(process.env.TURBOPACK ? {} : {
+    webpack: (config, { isServer }) => {
+      if (isServer) {
+        config.plugins = [...config.plugins, new PrismaPlugin()]
+      }
+      return config
+    },
+  }),
+  // Updated property name for server external packages
+  serverExternalPackages: ['@prisma/client']
 }
 
 export default nextConfig 
