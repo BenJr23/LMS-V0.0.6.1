@@ -1,14 +1,10 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run vercel-build",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "env": {
-    "DATABASE_URL": "@database_url"
-  },
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30
     }
-  },
-  "regions": ["iad1"]
+  }
 } 
