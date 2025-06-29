@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "dev": "next dev --turbopack",
-    "vercel-build": "prisma generate && next build",
+    "vercel-build": "prisma migrate dev && prisma generate && next build",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate"
   },
