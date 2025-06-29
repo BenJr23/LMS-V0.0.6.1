@@ -214,16 +214,6 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex justify-between items-center text-sm">
-              <label className="flex items-center space-x-1 text-gray-700">
-                <input type="checkbox" disabled={isLoading} />
-                <span>Remember me</span>
-              </label>
-              <a href="#" className="text-gray-700 hover:underline font-medium">
-                Forgot your password?
-              </a>
-            </div>
-
             <button
               type="submit"
               disabled={!isEmailValid || !isPasswordValid || isLoading}
