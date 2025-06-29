@@ -105,6 +105,7 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
   const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
   const [grade, setGrade] = useState<string>('');
   const [feedback, setFeedback] = useState<string>('');
+  const [isGrading, setIsGrading] = useState(false);
 
   useEffect(() => {
     const fetchRequirement = async () => {
@@ -138,6 +139,8 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
     if (!selectedSubmission || !requirement) return;
 
     try {
+      setIsGrading(true);
+      
       const gradeValue = parseFloat(grade);
       if (isNaN(gradeValue) || gradeValue < 0 || gradeValue > requirement.scoreBase) {
         toast.error(`Grade must be between 0 and ${requirement.scoreBase}`);
@@ -168,6 +171,8 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
     } catch (error) {
       console.error('Error submitting grade:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to submit grade');
+    } finally {
+      setIsGrading(false);
     }
   };
 
@@ -271,7 +276,7 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
                           {statusDisplay.text}
                         </span>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 text-gray-700">
                         {submission.score ? `${submission.score}/${requirement.scoreBase}` : 'N/A'}
                       </td>
                       <td className="p-4">
@@ -517,15 +522,24 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
                   setGrade('');
                   setFeedback('');
                 }}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                disabled={isGrading}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleGradeSubmission}
-                className="px-4 py-2 bg-[#800000] text-white rounded-lg hover:bg-[#800000]/90 transition-colors"
+                disabled={isGrading}
+                className="px-4 py-2 bg-[#800000] text-white rounded-lg hover:bg-[#800000]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Submit Grade
+                {isGrading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Grade'
+                )}
               </button>
             </div>
           </div>

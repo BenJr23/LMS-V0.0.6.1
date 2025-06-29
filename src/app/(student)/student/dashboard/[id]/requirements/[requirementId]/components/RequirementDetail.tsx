@@ -168,23 +168,6 @@ function SubmissionModal({ isOpen, onClose, requirementId, onSuccess, initialDat
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [requirementType, setRequirementType] = useState<string>('');
-
-  useEffect(() => {
-    const fetchRequirementType = async () => {
-      try {
-        const response = await getStudentRequirementDetail(requirementId);
-        if (response.success && response.data) {
-          setRequirementType(response.data.type);
-        }
-      } catch (error) {
-        console.error('Error fetching requirement type:', error);
-      }
-    };
-    if (isOpen) {
-      fetchRequirementType();
-    }
-  }, [requirementId, isOpen]);
 
   const resetForm = () => {
     setTitle('');
@@ -210,7 +193,7 @@ function SubmissionModal({ isOpen, onClose, requirementId, onSuccess, initialDat
       setUploadProgress(0);
       
       let filePath = initialData?.filePath || '';
-      if (file && requirementType !== 'QUIZ') {
+      if (file) {
         const uploadResponse = await uploadRequirementFile(file);
         if (!uploadResponse.success || !uploadResponse.path) {
           throw new Error(uploadResponse.error || 'Failed to upload file');
@@ -257,7 +240,7 @@ function SubmissionModal({ isOpen, onClose, requirementId, onSuccess, initialDat
       <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
           <h2 className="text-2xl font-bold text-gray-900">
-            {requirementType === 'QUIZ' ? 'Take Quiz' : 'Create Submission'}
+            {initialData ? 'Edit Submission' : 'Create Submission'}
           </h2>
           <button
             onClick={handleClose}
@@ -270,7 +253,7 @@ function SubmissionModal({ isOpen, onClose, requirementId, onSuccess, initialDat
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-              {requirementType === 'QUIZ' ? 'Quiz Title' : 'Submission Title'}
+              Submission Title
             </label>
             <input
               type="text"
@@ -278,32 +261,30 @@ function SubmissionModal({ isOpen, onClose, requirementId, onSuccess, initialDat
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#800000] focus:border-transparent text-gray-900 placeholder-gray-500"
-              placeholder={requirementType === 'QUIZ' ? 'Enter quiz title' : 'Enter submission title'}
+              placeholder="Enter submission title"
               required
             />
           </div>
 
           <div>
             <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
-              {requirementType === 'QUIZ' ? 'Quiz Answers' : 'Content'}
+              Content
             </label>
             <div className="border border-gray-300 rounded-lg">
               <RichTextEditor
                 content={content}
                 onChange={setContent}
-                placeholder={requirementType === 'QUIZ' ? 'Enter your quiz answers...' : 'Enter your submission content...'}
+                placeholder="Enter your submission content..."
               />
             </div>
           </div>
 
-          {requirementType !== 'QUIZ' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Attach File (Optional)
-              </label>
-              <FileUploadBox onFileSelect={setFile} />
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Attach File (Optional)
+            </label>
+            <FileUploadBox onFileSelect={setFile} />
+          </div>
 
           {uploadProgress > 0 && (
             <div className="w-full bg-gray-200 rounded-full h-2">
@@ -331,10 +312,10 @@ function SubmissionModal({ isOpen, onClose, requirementId, onSuccess, initialDat
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  {requirementType === 'QUIZ' ? 'Submitting...' : 'Creating...'}
+                  {initialData ? 'Updating...' : 'Creating...'}
                 </>
               ) : (
-                requirementType === 'QUIZ' ? 'Submit Quiz' : 'Create Submission'
+                initialData ? 'Update Submission' : 'Create Submission'
               )}
             </button>
           </div>

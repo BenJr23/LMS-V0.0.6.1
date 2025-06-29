@@ -132,6 +132,7 @@ export default function SubjectInstancePage({ params }: { params: Promise<{ id: 
   const [editAnnouncementForm, setEditAnnouncementForm] = useState({ title: '', content: '' });
   const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false);
   const [isDeletingAnnouncement, setIsDeletingAnnouncement] = useState(false);
+  const [isCreatingRequirement, setIsCreatingRequirement] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -296,6 +297,8 @@ export default function SubjectInstancePage({ params }: { params: Promise<{ id: 
 
   const handleCreateRequirement = async () => {
     try {
+      setIsCreatingRequirement(true);
+      
       if (!assignmentForm.title || !assignmentForm.content || !assignmentForm.deadline || !assignmentForm.baseScore) {
         toast.error('Please fill in all required fields');
         return;
@@ -348,6 +351,8 @@ export default function SubjectInstancePage({ params }: { params: Promise<{ id: 
     } catch (error) {
       console.error('Error handling requirement:', error);
       toast.error(selectedRequirement ? 'Failed to update requirement' : 'Failed to create requirement');
+    } finally {
+      setIsCreatingRequirement(false);
     }
   };
 
@@ -1002,15 +1007,24 @@ export default function SubjectInstancePage({ params }: { params: Promise<{ id: 
               <div className="flex justify-end gap-4">
                 <button
                   onClick={() => setIsAddAssignmentModalOpen(false)}
-                  className="px-6 py-3 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 font-medium text-base"
+                  disabled={isCreatingRequirement}
+                  className="px-6 py-3 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateRequirement}
-                  className="px-6 py-3 rounded-lg bg-[#800000] text-white hover:bg-[#600000] transition-colors duration-200 font-medium text-base shadow-sm"
+                  disabled={isCreatingRequirement}
+                  className="px-6 py-3 rounded-lg bg-[#800000] text-white hover:bg-[#600000] transition-colors duration-200 font-medium text-base shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {getRequirementLabels(selectedRequirementType).submitButton}
+                  {isCreatingRequirement ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                      {selectedRequirement ? 'Saving...' : 'Creating...'}
+                    </>
+                  ) : (
+                    getRequirementLabels(selectedRequirementType).submitButton
+                  )}
                 </button>
               </div>
             </div>
