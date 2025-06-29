@@ -1,4 +1,5 @@
-import { PrismaNextjsMonorepoWorkaroundPlugin } from '@prisma/nextjs-monorepo-workaround-plugin'
+import pkg from '@prisma/nextjs-monorepo-workaround-plugin';
+const { PrismaNextjsMonorepoWorkaroundPlugin } = pkg;
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -7,10 +8,10 @@ const nextConfig = {
   },
   webpack: (config, { isServer, dev }) => {
     if (isServer && !dev) {
-      config.plugins = config.plugins || []
-      config.plugins.push(new PrismaNextjsMonorepoWorkaroundPlugin())
+      config.plugins = config.plugins || [];
+      config.plugins.push(new PrismaNextjsMonorepoWorkaroundPlugin());
     }
-    return config
+    return config;
   },
   // Optimize for deployment
   compress: true,
@@ -54,7 +55,7 @@ const nextConfig = {
           },
         ],
       },
-    ]
+    ];
   },
   // Redirects for better UX
   async redirects() {
@@ -64,8 +65,8 @@ const nextConfig = {
         destination: '/faculty-login',
         permanent: false,
       },
-    ]
+    ];
   },
-}
+};
 
-export default nextConfig 
+export default nextConfig; 
