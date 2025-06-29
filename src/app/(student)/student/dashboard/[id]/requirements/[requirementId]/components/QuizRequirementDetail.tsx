@@ -167,23 +167,6 @@ function SubmissionModal({ isOpen, onClose, requirementId, onSuccess, initialDat
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [requirementType, setRequirementType] = useState<string>('');
-
-  useEffect(() => {
-    const fetchRequirementType = async () => {
-      try {
-        const response = await getStudentRequirementDetail(requirementId);
-        if (response.success && response.data) {
-          setRequirementType(response.data.type);
-        }
-      } catch (error) {
-        console.error('Error fetching requirement type:', error);
-      }
-    };
-    if (isOpen) {
-      fetchRequirementType();
-    }
-  }, [requirementId, isOpen]);
 
   const resetForm = () => {
     setTitle('');
@@ -209,7 +192,7 @@ function SubmissionModal({ isOpen, onClose, requirementId, onSuccess, initialDat
       setUploadProgress(0);
       
       let filePath = initialData?.filePath || '';
-      if (file && requirementType !== 'QUIZ') {
+      if (file) {
         const uploadResponse = await uploadRequirementFile(file);
         if (!uploadResponse.success || !uploadResponse.path) {
           throw new Error(uploadResponse.error || 'Failed to upload file');
