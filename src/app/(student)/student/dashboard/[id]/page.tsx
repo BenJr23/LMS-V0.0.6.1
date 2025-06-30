@@ -320,9 +320,11 @@ export default function SubjectDetailPage({ params }: { params: Promise<{ id: st
                               <li key={file.id} className="flex items-center justify-between text-sm text-gray-700 py-2 px-3 rounded-md hover:bg-pink-50 transition-colors">
                                 <a
                                   href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/lms/${file.filePath}`}
-                                  download
+                                  target={file.fileName.toLowerCase().endsWith('.pdf') ? '_blank' : undefined}
+                                  rel={file.fileName.toLowerCase().endsWith('.pdf') ? 'noopener noreferrer' : undefined}
+                                  download={!file.fileName.toLowerCase().endsWith('.pdf')}
                                   className="flex items-center gap-2 hover:text-[#800000] transition-colors cursor-pointer"
-                                  title={`Download ${file.fileName}`}
+                                  title={file.fileName.toLowerCase().endsWith('.pdf') ? `Open ${file.fileName}` : `Download ${file.fileName}`}
                                 >
                                   {file.fileName.toLowerCase().endsWith('.pdf') ? <FileText className="w-4 h-4 text-red-500" /> : 
                                    file.fileName.toLowerCase().endsWith('.doc') || file.fileName.toLowerCase().endsWith('.docx') ? <FileText className="w-4 h-4 text-blue-500" /> :
