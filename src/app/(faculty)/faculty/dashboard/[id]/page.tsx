@@ -133,6 +133,7 @@ export default function SubjectInstancePage({ params }: { params: Promise<{ id: 
   const [isEditingAnnouncement, setIsEditingAnnouncement] = useState(false);
   const [isDeletingAnnouncement, setIsDeletingAnnouncement] = useState(false);
   const [isCreatingRequirement, setIsCreatingRequirement] = useState(false);
+  const [isDeletingRequirement, setIsDeletingRequirement] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -365,6 +366,7 @@ export default function SubjectInstancePage({ params }: { params: Promise<{ id: 
     if (!selectedRequirement) return;
 
     try {
+      setIsDeletingRequirement(true);
       const result = await deleteRequirement(selectedRequirement.id);
       if (result.success) {
         toast.success('Requirement deleted successfully!');
@@ -382,6 +384,7 @@ export default function SubjectInstancePage({ params }: { params: Promise<{ id: 
     }
     setIsDeleteModalOpen(false);
     setSelectedRequirement(null);
+    setIsDeletingRequirement(false);
   };
 
   const handleCreateFolder = async () => {
@@ -1052,14 +1055,23 @@ export default function SubjectInstancePage({ params }: { params: Promise<{ id: 
                   setSelectedRequirement(null);
                 }}
                 className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-200 font-medium"
+                disabled={isDeletingRequirement}
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors duration-200 font-medium"
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors duration-200 font-medium flex items-center gap-2"
+                disabled={isDeletingRequirement}
               >
-                Delete
+                {isDeletingRequirement ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
               </button>
             </div>
           </div>
