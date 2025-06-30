@@ -4,6 +4,7 @@
 import { useState, useEffect, use } from 'react';
 import { ArrowLeft, Calendar, Award, Eye } from 'lucide-react';
 import { getTeacherRequirementDetail, submitGrade } from '@/app/_actions/teacherview';
+import { deleteRequirement } from '@/app/_actions/requirement';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Toaster } from 'react-hot-toast';
@@ -180,12 +181,15 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
 
   const handleDeleteRequirement = async () => {
     try {
+      console.log('Starting delete process...');
+      console.log('isDeleting before setState:', isDeleting);
       setIsDeleting(true);
+      console.log('isDeleting after setState:', true);
       
-      // Import the deleteRequirement function
-      const { deleteRequirement } = await import('@/app/_actions/requirement');
-      
+      console.log('Calling deleteRequirement with ID:', resolvedParams.requirementId);
       const response = await deleteRequirement(resolvedParams.requirementId);
+      
+      console.log('Delete response:', response);
       
       if (!response.success) {
         throw new Error(response.error || 'Failed to delete requirement');
@@ -197,6 +201,7 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
       console.error('Error deleting requirement:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete requirement');
     } finally {
+      console.log('Setting isDeleting to false');
       setIsDeleting(false);
       setIsDeleteModalOpen(false);
     }
@@ -597,6 +602,8 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
               <p className="text-gray-600">
                 Are you sure you want to delete &ldquo;{requirement?.title}&rdquo;? This action cannot be undone and will remove all associated submissions.
               </p>
+              {/* Debug info */}
+              <p className="text-xs text-gray-400 mt-2">Debug: isDeleting = {isDeleting.toString()}</p>
             </div>
             <div className="p-6 flex justify-end gap-4">
               <button
