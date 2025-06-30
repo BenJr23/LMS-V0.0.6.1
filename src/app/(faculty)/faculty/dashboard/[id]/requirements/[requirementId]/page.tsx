@@ -181,27 +181,17 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
 
   const handleDeleteRequirement = async () => {
     try {
-      console.log('Starting delete process...');
-      console.log('isDeleting before setState:', isDeleting);
       setIsDeleting(true);
-      console.log('isDeleting after setState:', true);
-      
-      console.log('Calling deleteRequirement with ID:', resolvedParams.requirementId);
       const response = await deleteRequirement(resolvedParams.requirementId);
-      
-      console.log('Delete response:', response);
-      
       if (!response.success) {
         throw new Error(response.error || 'Failed to delete requirement');
       }
-
       toast.success('Requirement deleted successfully');
       router.back(); // Go back to requirements list
     } catch (error) {
       console.error('Error deleting requirement:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete requirement');
     } finally {
-      console.log('Setting isDeleting to false');
       setIsDeleting(false);
       setIsDeleteModalOpen(false);
     }
@@ -602,8 +592,6 @@ export default function TeacherRequirementDetailPage({ params }: { params: Promi
               <p className="text-gray-600">
                 Are you sure you want to delete &ldquo;{requirement?.title}&rdquo;? This action cannot be undone and will remove all associated submissions.
               </p>
-              {/* Debug info */}
-              <p className="text-xs text-gray-400 mt-2">Debug: isDeleting = {isDeleting.toString()}</p>
             </div>
             <div className="p-6 flex justify-end gap-4">
               <button
