@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useClerk, useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { BookOpen, GraduationCap } from 'lucide-react';
+import { BookOpen, GraduationCap, Calendar } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, isLoaded } = useUser();
@@ -61,6 +61,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <Link href="/student/subjects" className="flex items-center px-4 py-3 rounded-lg hover:bg-white/20 transition font-bold">
                   <GraduationCap className="w-5 h-5 mr-3" />
                   Subjects
+                </Link>
+              </li>
+              <li>
+                <Link href="/student/calendar" className="flex items-center px-4 py-3 rounded-lg hover:bg-white/20 transition font-bold">
+                  <Calendar className="w-5 h-5 mr-3" />
+                  Calendar
                 </Link>
               </li>
             </ul>
