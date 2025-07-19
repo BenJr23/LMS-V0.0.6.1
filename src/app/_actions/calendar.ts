@@ -51,6 +51,14 @@ export const getCalendarEvents = async (startDate?: Date, endDate?: Date) => {
                 deadline: {
                   gte: startDate,
                   lte: endDate
+                },
+                // Exclude requirements that already have submissions
+                submissions: {
+                  none: {
+                    enrollment: {
+                      studentId: user.id
+                    }
+                  }
                 }
               },
               orderBy: {
